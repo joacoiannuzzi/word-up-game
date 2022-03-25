@@ -114,12 +114,16 @@ const addNewLevel = (levels: Level[]): Level[] => {
 const addLetter =
   (gameState: GameState) =>
   (letter: Letter): GameState => {
-    const { levels: levelsWithAddedLetter, shouldGoToNextLevel } =
+    const { level: levelWithAddedLetter, shouldGoToNextLevel } =
       addLetterToLevel({
-        levels: gameState.levels,
+        level: gameState.levels[gameState.currentLevelIndex],
         letter,
-        currentLevelIndex: gameState.currentLevelIndex,
       });
+
+    const levelsWithAddedLetter = gameState.levels.map((level, index) => {
+      if (index !== gameState.currentLevelIndex) return level;
+      return levelWithAddedLetter;
+    });
 
     if (shouldGoToNextLevel) {
       const newLevels = pipe(
@@ -140,46 +144,84 @@ const addLetter =
   };
 
 const removeLetter = (gameState: GameState) => (): GameState => {
-  return gameState;
+  const currentLevel = gameState.levels[gameState.currentLevelIndex];
+  const reversedSquares = [...currentLevel.squares].reverse();
+
+  const previousLevel = gameState.levels[gameState.currentLevelIndex - 1];
+
+  const indexToRemove = handleOption(previousLevel, {
+    None: () => reversedSquares.findIndex((square) => isSome(square.letter)),
+    Some: (prevLevel) => {
+      const prevLevelUps = prevLevel.upsIndexes.map(
+        (index) => prevLevel.squares.length - index - 1
+      );
+
+      return reversedSquares.findIndex(
+        (square, i) => !prevLevelUps.includes(i) && isSome(square.letter)
+      );
+    },
+  });
+
+  if (indexToRemove === -1) return gameState;
+
+  const removedReversedSquares = reversedSquares.map((square, index) =>
+    index !== indexToRemove
+      ? square
+      : {
+          ...square,
+          letter: undefined,
+        }
+  );
+
+  const removedSquares = [...removedReversedSquares].reverse();
+
+  const changedLevel = {
+    ...currentLevel,
+    squares: removedSquares,
+  };
+
+  const levels = gameState.levels.map((level, index) => {
+    if (index !== gameState.currentLevelIndex) return level;
+    return changedLevel;
+  });
+
+  return {
+    ...gameState,
+    levels,
+  };
 };
 
 const addLetterToLevel = ({
-  levels,
+  level,
   letter,
-  currentLevelIndex,
 }: {
-  levels: Level[];
+  level: Level;
   letter: Letter;
-  currentLevelIndex: number;
 }): {
-  levels: Level[];
+  level: Level;
   shouldGoToNextLevel: boolean;
 } => {
-  const newLevels = levels.map((level, index) => {
-    if (index !== currentLevelIndex) return level;
+  const currentSquareIndex = findEmptySquare({ level });
 
-    const currentSquareIndex = findEmptySquare({ level });
-
-    const squares = addLetterToSquare({
-      squares: level.squares,
-      currentIndex: currentSquareIndex,
-      letter,
-    });
-
-    return {
-      ...level,
-      squares,
-    };
+  const squares = addLetterToSquare({
+    squares: level.squares,
+    currentIndex: currentSquareIndex,
+    letter,
   });
 
-  const shouldGoToNextLevel = newLevels[currentLevelIndex].squares.every(
-    (square) => isSome(square.letter)
+  const changedLevel = {
+    ...level,
+    squares,
+  };
+
+  const shouldGoToNextLevel = changedLevel.squares.every((square) =>
+    isSome(square.letter)
   );
 
   // todo - check that word exists in dictionary
 
   return {
-    levels: newLevels,
+    level: changedLevel,
     shouldGoToNextLevel,
   };
 };
