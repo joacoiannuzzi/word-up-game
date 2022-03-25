@@ -1,6 +1,7 @@
 import { GameState, Letter, Level, Square } from "game/types";
 import { getRandomNumbers } from "game/utils";
-import { handleOption, isNone, isSome } from "lib/utils";
+import { checkWordExists } from "lib/check-word";
+import { handleOption, ifElse, isNone, isSome } from "lib/utils";
 import { pipe } from "ramda";
 
 const buildLevel = ({
@@ -209,16 +210,58 @@ const addLetterToLevel = ({
     letter,
   });
 
-  const changedLevel = {
-    ...level,
-    squares,
-  };
-
-  const shouldGoToNextLevel = changedLevel.squares.every((square) =>
-    isSome(square.letter)
-  );
+  const areSquaresFull = squares.every((square) => isSome(square.letter));
 
   // todo - check that word exists in dictionary
+
+  const { changedLevel, shouldGoToNextLevel } = ifElse(areSquaresFull, {
+    True: () => {
+      const word = squares.reduce(
+        (acc, square) =>
+          handleOption(square.letter, {
+            Some: (letter) => `${acc}${letter}`,
+            None: () => {
+              throw new Error("letter is not defined");
+            },
+          }),
+        ""
+      );
+
+      const doesWordExist = checkWordExists(word);
+
+      return ifElse(doesWordExist, {
+        True: () => {
+          console.log(`word ${word} does exist`);
+          return {
+            changedLevel: {
+              ...level,
+              squares,
+            },
+            shouldGoToNextLevel: true,
+          };
+        },
+        False: () => {
+          console.log(`word ${word} does not exist`);
+          return {
+            changedLevel: {
+              ...level,
+              squares,
+            },
+            shouldGoToNextLevel: false,
+          };
+        },
+      });
+    },
+    False: () => {
+      return {
+        changedLevel: {
+          ...level,
+          squares,
+        },
+        shouldGoToNextLevel: false,
+      };
+    },
+  });
 
   return {
     level: changedLevel,
