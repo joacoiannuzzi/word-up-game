@@ -1,8 +1,8 @@
+import { pipe } from "ramda";
 import { GameState, Letter, Level, Square } from "game/types";
 import { getRandomNumbers } from "game/utils";
 import { checkWordExists } from "lib/check-word";
-import { handleOption, ifElse, isNone, isSome } from "lib/utils";
-import { pipe } from "ramda";
+import { handleOption, ifElse, isNone, isSome, Option } from "lib/utils";
 
 const buildLevel = ({
   id,
@@ -38,6 +38,8 @@ const buildInitialState = (): GameState => {
   return {
     levels,
     currentLevelIndex: 0,
+    words: [],
+    points: 0,
   };
 };
 
@@ -112,6 +114,19 @@ const addNewLevel = (levels: Level[]): Level[] => {
   return [...levels, newLevel];
 };
 
+const buildWord = (level: Level): string => {
+  return level.squares
+    .map((square) =>
+      handleOption(square.letter, {
+        Some: (letter) => letter.toString(),
+        None: () => {
+          throw new Error("letter is not defined");
+        },
+      })
+    )
+    .join("");
+};
+
 const addLetter =
   (gameState: GameState) =>
   (letter: Letter): GameState => {
@@ -119,6 +134,7 @@ const addLetter =
       addLetterToLevel({
         level: gameState.levels[gameState.currentLevelIndex],
         letter,
+        previousWord: gameState.words[gameState.words.length - 1],
       });
 
     const levelsWithAddedLetter = gameState.levels.map((level, index) => {
@@ -131,10 +147,14 @@ const addLetter =
         moveLettersToNextLevel(gameState.currentLevelIndex),
         addNewLevel
       )(levelsWithAddedLetter);
+
+      const word = buildWord(levelWithAddedLetter);
+
       return {
         ...gameState,
         levels: newLevels,
         currentLevelIndex: gameState.currentLevelIndex + 1,
+        words: [...gameState.words, word],
       };
     }
 
@@ -195,9 +215,11 @@ const removeLetter = (gameState: GameState) => (): GameState => {
 const addLetterToLevel = ({
   level,
   letter,
+  previousWord,
 }: {
   level: Level;
   letter: Letter;
+  previousWord: Option<string>;
 }): {
   level: Level;
   shouldGoToNextLevel: boolean;
@@ -212,8 +234,6 @@ const addLetterToLevel = ({
 
   const areSquaresFull = squares.every((square) => isSome(square.letter));
 
-  // todo - check that word exists in dictionary
-
   const { changedLevel, shouldGoToNextLevel } = ifElse(areSquaresFull, {
     True: () => {
       const word = squares.reduce(
@@ -227,11 +247,14 @@ const addLetterToLevel = ({
         ""
       );
 
-      const doesWordExist = checkWordExists(word);
+      const isValidWord =
+        handleOption(previousWord, {
+          Some: (prevWord) => word !== prevWord,
+          None: () => true,
+        }) && checkWordExists(word);
 
-      return ifElse(doesWordExist, {
+      return ifElse(isValidWord, {
         True: () => {
-          console.log(`word ${word} does exist`);
           return {
             changedLevel: {
               ...level,
@@ -241,7 +264,6 @@ const addLetterToLevel = ({
           };
         },
         False: () => {
-          console.log(`word ${word} does not exist`);
           return {
             changedLevel: {
               ...level,

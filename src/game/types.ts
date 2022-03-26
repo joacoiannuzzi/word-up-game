@@ -43,6 +43,8 @@ export type Level = {
 export type GameState = {
   levels: Level[];
   currentLevelIndex: number;
+  words: string[];
+  points: number;
 };
 
 export const isLetter = (letter: string): letter is Letter => {
