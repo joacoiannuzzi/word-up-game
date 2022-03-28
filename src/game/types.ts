@@ -77,3 +77,7 @@ export const isLetter = (letter: string): letter is Letter => {
     "z",
   ].includes(letter);
 };
+
+export const doesWordConsistsOfLetters = (word: string): boolean => {
+  return word.split("").every(isLetter);
+};

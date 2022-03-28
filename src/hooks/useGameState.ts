@@ -6,6 +6,7 @@ type GameStore = {
   gameState: GameState;
   addLetter: (letter: Letter) => void;
   removeLetter: () => void;
+  reset: () => void;
 };
 
 export const useGameStore = create<GameStore>((set) => ({
@@ -20,6 +21,12 @@ export const useGameStore = create<GameStore>((set) => ({
     set((state) => ({
       ...state,
       gameState: Game.removeLetter(state.gameState)(),
+    }));
+  },
+  reset: () => {
+    set((state) => ({
+      ...state,
+      gameState: Game.buildInitialState(),
     }));
   },
 }));

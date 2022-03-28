@@ -9,15 +9,12 @@ export const handleOption = <T, ReturnType>(
     None: () => ReturnType;
     Some: (value: T) => ReturnType;
   }
-): ReturnType => {
-  if (option === undefined) {
-    return None();
-  }
-  return Some(option);
-};
+): ReturnType => (isNone(option) ? None() : Some(option));
 
-export const isNone = <T>(option: Option<T>): boolean => option === undefined;
-export const isSome = <T>(option: Option<T>): boolean => option !== undefined;
+export const isNone = <T>(option: Option<T>): option is undefined =>
+  option === undefined;
+export const isSome = <T>(option: Option<T>): option is T =>
+  option !== undefined;
 
 export const ifElse = <ReturnType>(
   condition: boolean,

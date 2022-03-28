@@ -1,4 +1,5 @@
 import { pipe } from "ramda";
+import { getWordPoints } from "game/points";
 import { GameState, Letter, Level, Square } from "game/types";
 import { getRandomNumbers } from "game/utils";
 import { checkWordExists } from "lib/check-word";
@@ -32,7 +33,7 @@ const buildLevel = ({
 
 const buildInitialState = (): GameState => {
   const levels = Array.from({ length: 10 }, (_, index) =>
-    buildLevel({ id: index, squareCount: 5, upCount: 1 })
+    buildLevel({ id: index, squareCount: 5, upCount: 2 })
   );
 
   return {
@@ -108,7 +109,7 @@ const addNewLevel = (levels: Level[]): Level[] => {
   const newLevel = buildLevel({
     id: levels.length,
     squareCount: 5,
-    upCount: 1,
+    upCount: 2,
   });
 
   return [...levels, newLevel];
@@ -149,12 +150,14 @@ const addLetter =
       )(levelsWithAddedLetter);
 
       const word = buildWord(levelWithAddedLetter);
+      const points = getWordPoints(word);
 
       return {
         ...gameState,
         levels: newLevels,
         currentLevelIndex: gameState.currentLevelIndex + 1,
         words: [...gameState.words, word],
+        points: gameState.points + points,
       };
     }
 

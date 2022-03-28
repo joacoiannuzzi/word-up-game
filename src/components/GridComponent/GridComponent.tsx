@@ -1,17 +1,13 @@
 import clsx from "clsx";
 import { LevelComponent } from "components/LevelComponent/LevelComponent";
-import { Level } from "game/types";
 import { useGameStore } from "hooks/useGameState";
 import { useEffect, useRef } from "react";
 
-type GridComponentProps = {};
-
-export const GridComponent = ({}: GridComponentProps) => {
+export const GridComponent = () => {
   const { gameState } = useGameStore();
   const { levels, currentLevelIndex } = gameState;
 
   const currentLevelRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     currentLevelRef?.current?.scrollIntoView({
       behavior: "smooth",
@@ -21,21 +17,22 @@ export const GridComponent = ({}: GridComponentProps) => {
   return (
     <div
       className={clsx(
-        "h-screen",
+        "h-3/4",
         "flex flex-col-reverse",
-        "overflow-y-auto",
+        "overflow-y-hidden",
         "hide-scrollbar"
       )}
     >
       {levels.map((level) => (
         <div
+          key={level.id}
           ref={
             level.id === (currentLevelIndex + 4).toString()
               ? currentLevelRef
               : null
           }
         >
-          <LevelComponent key={level.id} level={level} />
+          <LevelComponent level={level} />
         </div>
       ))}
     </div>
